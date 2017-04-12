@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: edcfcb91b6c54f946a1077a73a4befb2
+timeCreated: 1491944638
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Jungle Fever NF
+  fontNames:
+  - Jungle Fever NF
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 8271d9d3a2d43274b8c5d44dc552d976, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
