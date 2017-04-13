@@ -8,6 +8,13 @@ public class CitizenDropoff : MonoBehaviour {
 
     private float m_dropoffTime = 0;
 
+    public GameObject m_DropoffActiveParticles;
+
+    public void ActivateDropoff()
+    {
+        m_DropoffActiveParticles.SetActive(true);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.tag != "Player" || !other.gameObject.GetComponentInParent<PlayerController>().GetCarryingPatient())
@@ -25,7 +32,8 @@ public class CitizenDropoff : MonoBehaviour {
         if (Time.time > m_dropoffTime)
         {
             FindObjectOfType<PlayerController>().DropOffSuccess();
-            //TODO: dropoff logic (game time remaining, activate new patients, particle effects for player feedback)
+            m_DropoffActiveParticles.SetActive(false);
+            //TODO: dropoff logic (game time remaining)
         }
     }
 

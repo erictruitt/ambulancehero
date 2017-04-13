@@ -92,6 +92,8 @@ public class GameManager : MonoBehaviour
         }
 
         m_currentlyActivatedPatients.Clear();
+
+        GameObject.FindGameObjectWithTag("Dropoff").GetComponent<CitizenDropoff>().ActivateDropoff();
     }
 
 }

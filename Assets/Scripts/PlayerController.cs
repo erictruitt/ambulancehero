@@ -68,6 +68,7 @@ public class PlayerController : MonoBehaviour
     public float m_maxSteeringAngle;
 
     public Text m_speedUI;
+    public Text m_livesSavedUI;
 
 
     public Transform m_centerofMass;
@@ -77,6 +78,8 @@ public class PlayerController : MonoBehaviour
     private AudioSource m_audioSource;
     private bool m_needsPatient;
     private bool m_carryingPatient;
+
+    public GameObject m_wayfindingIcon;
 
     private void Start()
     {
@@ -122,9 +125,10 @@ public class PlayerController : MonoBehaviour
 
     void UpdateHUD()
     {
-        int speedToText = (int)m_currSpeed;
-        m_speedUI.text = speedToText.ToString();
+        int toText = (int)m_currSpeed;
+        m_speedUI.text = toText.ToString();
 
+        m_livesSavedUI.text = m_playerStats.livesSaved.ToString();
     }
 
     void CheckPatient()
@@ -192,6 +196,8 @@ public class PlayerController : MonoBehaviour
         m_needsPatient = true;
         m_playerStats.livesSaved += 1;
         m_carryingPatient = false;
+        m_wayfindingIcon.SetActive(false);
+
     }
 
     public void DropOffFail()
@@ -199,11 +205,14 @@ public class PlayerController : MonoBehaviour
         m_needsPatient = true;
         m_playerStats.livesLost += 1;
         m_carryingPatient = false;
+        m_wayfindingIcon.SetActive(false);
+
     }
 
     public void PickedUpPatient()
     {
         m_carryingPatient = true;
+        m_wayfindingIcon.SetActive(true);
     }
 
     public bool GetCarryingPatient()

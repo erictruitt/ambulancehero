@@ -5,6 +5,7 @@ using UnityEngine;
 public class PatientController : MonoBehaviour {
 
     private const float PICKUP_HOLD_TIMER = 3.0f;
+    private const int NUM_ICONS = 3;
 
     private float m_pickupTime;
     int m_citizenID;
@@ -12,19 +13,29 @@ public class PatientController : MonoBehaviour {
 
     private Transform m_startPosition;
 
+    public GameObject m_citizenActiveParticles;
+    public GameObject[] m_citizenActiveIcons;
+
+
     private void Start()
     {
         m_startPosition = transform;
     }
 
-    public void Activate(int _id)
+    public void Activate(int _id, int _difficulty = 3)
     {
         m_citizenID = _id;
         m_pickupTime = 0;
         m_active = true;
 
         //TODO: have animation go into death
-        //TODO: enable particles around patient
+
+        m_citizenActiveParticles.SetActive(true);
+
+        for (int i = 0; i < _difficulty; i++)
+        {
+            m_citizenActiveIcons[i].SetActive(true);
+        }
     }
 
     public void Deactivate()
@@ -32,8 +43,13 @@ public class PatientController : MonoBehaviour {
         m_active = false;
 
         //TODO: have animation go back into walk/idle
-        //TODO: disable particles;
 
+        m_citizenActiveParticles.SetActive(false);
+
+        for (int i = 0; i < m_citizenActiveIcons.Length; i++)
+        {
+            m_citizenActiveIcons[i].SetActive(false);
+        }
     }
 
     public void ReEnableCitizen()
