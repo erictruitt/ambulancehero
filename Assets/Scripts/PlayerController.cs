@@ -78,6 +78,7 @@ public class PlayerController : MonoBehaviour
     private AudioSource m_audioSource;
     private bool m_needsPatient;
     private bool m_carryingPatient;
+    private bool m_needToResetBrake;
 
     public GameObject m_wayfindingIcon;
 
@@ -87,6 +88,7 @@ public class PlayerController : MonoBehaviour
         m_audioSource = GetComponent<AudioSource>();
         m_needsPatient = true;
         m_carryingPatient = false;
+        m_needToResetBrake = false;
 
         m_playerStats = new PlayerStatistics();
         m_playerStats.SetStartTime(Time.time);
@@ -141,17 +143,44 @@ public class PlayerController : MonoBehaviour
 
     }
 
+    void CheckBreak()
+    {
+        if (Input.GetButton("Brake"))
+        {
+            for (int i = 0; i < m_axleInfos.Count; i++)
+            {
+                m_axleInfos[i].leftWheel.brakeTorque *= 2.0f;
+                m_axleInfos[i].rightWheel.brakeTorque *= 2.0f;
+                m_needToResetBrake = true;
+            }
+        }
+
+        if (Input.GetButtonUp("Brake") && m_needToResetBrake)
+        {
+            for (int i = 0; i < m_axleInfos.Count; i++)
+            {
+                m_axleInfos[i].leftWheel.brakeTorque = 0.0f;
+                m_axleInfos[i].rightWheel.brakeTorque = 0.0f;
+                m_needToResetBrake = false;
+            }
+        }
+    }
 
     private void Update()
     {
         EngineSound();
         UpdateHUD();
         CheckPatient();
+        CheckBreak();
 
     }
 
+    
+
     public void FixedUpdate()
     {
+
+
         accelerator = Input.GetAxis("Vertical");
         m_currentTorque = m_maxMotorTorque * accelerator;
 
