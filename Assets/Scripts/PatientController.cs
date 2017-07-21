@@ -2,6 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public class CitizenStats
+{
+    //int m_citizenID;
+    //bool m_active = false;
+    //public int m_pickupRank = 0;
+}
+
 public class PatientController : MonoBehaviour {
 
     private const float PICKUP_HOLD_TIMER = 3.0f;
@@ -10,12 +17,12 @@ public class PatientController : MonoBehaviour {
     private float m_pickupTime;
     int m_citizenID;
     bool m_active = false;
+    public int m_pickupRank = 0;
 
     private Transform m_startPosition;
 
     public GameObject m_citizenActiveParticles;
     public GameObject[] m_citizenActiveIcons;
-
 
     private void Start()
     {
@@ -27,6 +34,7 @@ public class PatientController : MonoBehaviour {
         m_citizenID = _id;
         m_pickupTime = 0;
         m_active = true;
+        SetPickupRank(_difficulty);
 
         //TODO: have animation go into death
 
@@ -41,6 +49,7 @@ public class PatientController : MonoBehaviour {
     public void Deactivate()
     {
         m_active = false;
+        SetPickupRank(0);
 
         //TODO: have animation go back into walk/idle
 
@@ -56,9 +65,26 @@ public class PatientController : MonoBehaviour {
     {
         gameObject.transform.position = m_startPosition.position;
         gameObject.transform.rotation = m_startPosition.rotation;
+
+        m_citizenActiveParticles.SetActive(false);
+        for (int i = 0; i < m_citizenActiveIcons.Length; i++)
+        {
+            m_citizenActiveIcons[i].SetActive(false);
+        }
+
         gameObject.SetActive(true);
 
         //TODO: have animation go back into walk/idle
+    }
+
+    public void SetPickupRank(int _rank)
+    {
+        m_pickupRank = _rank;
+    }
+
+    public int GetPickupRank()
+    {
+        return m_pickupRank;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -77,9 +103,11 @@ public class PatientController : MonoBehaviour {
         if (Time.time > m_pickupTime)
         {
             gameObject.SetActive(false);
+            other.gameObject.GetComponentInParent<PlayerController>().PickedUpPatient(m_pickupRank); //send player pickup info to add to timer
 
-            other.gameObject.GetComponentInParent<PlayerController>().PickedUpPatient();
-            GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>().DeactivateUnchosenPatients(m_citizenID);
+            GameObject gameManager = GameObject.FindGameObjectWithTag("GameManager");
+            gameManager.GetComponent<GameManager>().DeactivateUnchosenPatients(m_citizenID);
+            gameManager.GetComponent<GameManager>().PlayPickupClip();
         }
     }
 

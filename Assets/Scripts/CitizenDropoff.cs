@@ -10,6 +10,13 @@ public class CitizenDropoff : MonoBehaviour {
 
     public GameObject m_DropoffActiveParticles;
 
+    private AudioSource m_audioSource;
+
+    private void Start()
+    {
+        m_audioSource = GetComponent<AudioSource>();
+    }
+
     public void ActivateDropoff()
     {
         m_DropoffActiveParticles.SetActive(true);
@@ -31,9 +38,11 @@ public class CitizenDropoff : MonoBehaviour {
 
         if (Time.time > m_dropoffTime)
         {
+            m_audioSource.Play();
             FindObjectOfType<PlayerController>().DropOffSuccess();
             m_DropoffActiveParticles.SetActive(false);
-            //TODO: dropoff logic (game time remaining)
+            GameManager temp = FindObjectOfType<GameManager>();
+            temp.IncreaseTimer(other.gameObject.GetComponentInParent<PlayerController>().GetCurrPatientRank() * 5.0f);
         }
     }
 

@@ -15,44 +15,44 @@ public class AxleInfo
 [System.Serializable]
 public class PlayerStatistics
 {
-    public int livesSaved = 0;
-    public int livesLost = 0;
-    public float totalPlaytime = 0;
-    public float topSpeed = 0;
-    public float avgSpeed = 0;
+    public int m_livesSaved = 0;
+    public int m_livesLost = 0;
+    public int m_totalPlaytime = 0;
+    public int m_topSpeed = 0;
+    public float m_avgSpeed = 0;
 
-    private float startTime = 0;
-    private List<float> speedTracker = new List<float>();
+    private float m_startTime = 0;
+    private List<float> m_speedTracker = new List<float>();
 
-    public void SetStartTime(float _time) { startTime = _time; }
-    public void TrackSpeed(float _speed) { speedTracker.Add(_speed); }
+    public void SetStartTime(float _time) { m_startTime = _time; }
+    public void TrackSpeed(float _speed) { m_speedTracker.Add(_speed); }
 
-    public float CalculateTopSpeed()
+    public void CalculateTopSpeed()
     {
-        float topSpeed = 0.0f;
+        float tempTopSpeed = 0.0f;
 
-        for (int i = 0; i < speedTracker.Count - 1; i++)
-            if (speedTracker[i] > topSpeed)
-                topSpeed = speedTracker[i];
+        for (int i = 0; i < m_speedTracker.Count - 1; i++)
+            if (m_speedTracker[i] > tempTopSpeed)
+                tempTopSpeed = m_speedTracker[i];
 
-        return topSpeed;
+        m_topSpeed = (int)tempTopSpeed;
     }
 
     public float CalculateAvgSpeed()
     {
-        float avgSpeed = 0.0f, temp = 0.0f;
+        float avgSpeed = 0.0f, totSpeed = 0.0f;
 
-        for (int i = 0; i < speedTracker.Count - 1; i++)
-            temp += speedTracker[i];
+        for (int i = 0; i < m_speedTracker.Count - 1; i++)
+            totSpeed += m_speedTracker[i];
 
-        avgSpeed = temp / speedTracker.Count;
+        avgSpeed = totSpeed / m_speedTracker.Count;
 
         return avgSpeed;
     }
 
     public void CalculateTotalPlaytime()
     {
-        totalPlaytime = Time.time - startTime;
+        m_totalPlaytime = Mathf.FloorToInt(Time.time - m_startTime) - 1;
     }
 }
 
@@ -73,14 +73,17 @@ public class PlayerController : MonoBehaviour
 
     public Transform m_centerofMass;
 
-    private float accelerator;
     private float m_currentTorque;
     private AudioSource m_audioSource;
     private bool m_needsPatient;
     private bool m_carryingPatient;
     private bool m_needToResetBrake;
+    private bool m_braking;
 
     public GameObject m_wayfindingIcon;
+    public GameObject m_brakeLights;
+
+    public int m_currPatientRank = 0;
 
     private void Start()
     {
@@ -92,6 +95,24 @@ public class PlayerController : MonoBehaviour
 
         m_playerStats = new PlayerStatistics();
         m_playerStats.SetStartTime(Time.time);
+        m_braking = false;
+
+        m_brakeLights.SetActive(false);
+    }
+
+    private void OnDisable()
+    {
+        m_audioSource.pitch = 1.0f;
+
+        foreach (AxleInfo axleInfo in m_axleInfos)
+        {
+            axleInfo.leftWheel.motorTorque = 0.0f;
+            axleInfo.rightWheel.motorTorque = 0.0f;
+
+            axleInfo.leftWheel.brakeTorque = 1000.0f;
+            axleInfo.rightWheel.brakeTorque = 1000.0f;
+        }
+
     }
 
     public void ApplyLocalPositionToVisuals(WheelCollider collider)
@@ -114,7 +135,7 @@ public class PlayerController : MonoBehaviour
 
         //visualWheel.transform.position = position;
         //visualWheel.transform.rotation = rotation;
-    }
+    } //CURRENTLY DISABLED
 
     void EngineSound()
     {
@@ -130,7 +151,7 @@ public class PlayerController : MonoBehaviour
         int toText = (int)m_currSpeed;
         m_speedUI.text = toText.ToString();
 
-        m_livesSavedUI.text = m_playerStats.livesSaved.ToString();
+        m_livesSavedUI.text = m_playerStats.m_livesSaved.ToString();
     }
 
     void CheckPatient()
@@ -147,22 +168,30 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetButton("Brake"))
         {
+            m_brakeLights.SetActive(true);
+
             for (int i = 0; i < m_axleInfos.Count; i++)
             {
-                m_axleInfos[i].leftWheel.brakeTorque *= 2.0f;
-                m_axleInfos[i].rightWheel.brakeTorque *= 2.0f;
+                m_axleInfos[i].leftWheel.brakeTorque += 50.0f;
+                m_axleInfos[i].rightWheel.brakeTorque += 50.0f;
                 m_needToResetBrake = true;
             }
+
+            m_braking = true;
         }
 
         if (Input.GetButtonUp("Brake") && m_needToResetBrake)
         {
+            m_brakeLights.SetActive(false);
+
             for (int i = 0; i < m_axleInfos.Count; i++)
             {
                 m_axleInfos[i].leftWheel.brakeTorque = 0.0f;
                 m_axleInfos[i].rightWheel.brakeTorque = 0.0f;
                 m_needToResetBrake = false;
             }
+
+            m_braking = false;
         }
     }
 
@@ -172,25 +201,41 @@ public class PlayerController : MonoBehaviour
         UpdateHUD();
         CheckPatient();
         CheckBreak();
-
     }
 
-    
+
 
     public void FixedUpdate()
     {
 
-
-        accelerator = Input.GetAxis("Vertical");
-        m_currentTorque = m_maxMotorTorque * accelerator;
-
         float steering = m_maxSteeringAngle * Input.GetAxis("Horizontal");
+        float accelerator = Input.GetAxis("Vertical");
 
+        m_currentTorque = m_maxMotorTorque * accelerator;
         m_currSpeed = GetComponent<Rigidbody>().velocity.magnitude * 2.237f;
         m_playerStats.TrackSpeed(m_currSpeed);
 
+        //handles applying steering while braking
+        if (m_braking)
+        {
+            foreach (AxleInfo axleInfo in m_axleInfos)
+            {
+                if (axleInfo.steering)
+                {
+                    axleInfo.leftWheel.steerAngle = steering;
+                    axleInfo.rightWheel.steerAngle = steering;
+                }
+
+                axleInfo.leftWheel.motorTorque = 0.0f;
+                axleInfo.rightWheel.motorTorque = 0.0f;
+            }
+            return;
+        }
+
+        //handles applying steering and acceleration
         foreach (AxleInfo axleInfo in m_axleInfos)
         {
+
             if (axleInfo.steering)
             {
                 axleInfo.leftWheel.steerAngle = steering;
@@ -205,6 +250,7 @@ public class PlayerController : MonoBehaviour
             ApplyLocalPositionToVisuals(axleInfo.leftWheel);
             ApplyLocalPositionToVisuals(axleInfo.rightWheel);
 
+            //slow down gradually when accelerator isn't pressed
             if (m_currentTorque == 0)
             {
                 axleInfo.leftWheel.brakeTorque += 0.1f;
@@ -218,35 +264,48 @@ public class PlayerController : MonoBehaviour
 
         }
 
+//END FIXED UPDATE
     }
 
     public void DropOffSuccess()
     {
         m_needsPatient = true;
-        m_playerStats.livesSaved += 1;
+        m_playerStats.m_livesSaved += 1;
         m_carryingPatient = false;
         m_wayfindingIcon.SetActive(false);
-
     }
 
     public void DropOffFail()
     {
         m_needsPatient = true;
-        m_playerStats.livesLost += 1;
+        m_playerStats.m_livesLost += 1;
         m_carryingPatient = false;
         m_wayfindingIcon.SetActive(false);
-
     }
 
-    public void PickedUpPatient()
+    public void PickedUpPatient(int _rank)
     {
         m_carryingPatient = true;
         m_wayfindingIcon.SetActive(true);
+        m_currPatientRank = _rank;
     }
 
     public bool GetCarryingPatient()
     {
         return m_carryingPatient;
+    }
+
+    public int GetCurrPatientRank()
+    {
+        return m_currPatientRank;
+    }
+
+    public PlayerStatistics GetPlayerStats()
+    {
+        m_playerStats.CalculateTotalPlaytime();
+        m_playerStats.CalculateTopSpeed();
+        this.enabled = false;
+        return m_playerStats;
     }
 
 }
